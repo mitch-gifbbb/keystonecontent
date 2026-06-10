@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Keystone Email Engine</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg-secondary: #f7f7f5;
+    --bg-tertiary: #f0f0ec;
+    --text-primary: #1a1a18;
+    --text-secondary: #5a5a56;
+    --text-tertiary: #9a9a94;
+    --border: rgba(0,0,0,0.1);
+    --border-md: rgba(0,0,0,0.18);
+    --border-strong: rgba(0,0,0,0.28);
+    --accent-atlas: #185FA5;
+    --accent-atlas-bg: #E6F1FB;
+    --accent-atlas-text: #0C447C;
+    --accent-clarity: #0F6E56;
+    --accent-clarity-bg: #E1F5EE;
+    --accent-clarity-text: #085041;
+    --accent-roundtable: #854F0B;
+    --accent-roundtable-bg: #FAEEDA;
+    --accent-roundtable-text: #633806;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --bg-secondary: #242422;
+      --bg-tertiary: #2c2c2a;
+      --text-primary: #f0f0ec;
+      --text-secondary: #a0a09a;
+      --text-tertiary: #606060;
+      --border: rgba(255,255,255,0.08);
+      --border-md: rgba(255,255,255,0.14);
+      --border-strong: rgba(255,255,255,0.22);
+      --accent-atlas-bg: #0c2d4a;
+      --accent-atlas-text: #85B7EB;
+      --accent-clarity-bg: #0a2a20;
+      --accent-clarity-text: #5DCAA5;
+      --accent-roundtable-bg: #2a1a06;
+      --accent-roundtable-text: #FAC775;
+    }
+  }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  .topbar {
+    background: var(--bg);
+    border-bottom: 0.5px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-logo {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+  .topbar-sep { color: var(--border-md); }
+  .topbar-sub { font-size: 12px; color: var(--text-tertiary); }
+
+  .main { max-width: 720px; margin: 0 auto; padding: 32px 20px 80px; }
+
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 28px;
+  }
+
+  .product-btn {
+    padding: 16px 14px;
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-lg);
+    background: var(--bg);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.15s;
+    position: relative;
+    box-shadow: var(--shadow);
+  }
+  .product-btn:hover { background: var(--bg-secondary); border-color: var(--border-strong); transform: translateY(-1px); }
+  .product-btn:active { transform: translateY(0); }
+  .product-btn.loading { opacity: 0.55; pointer-events: none; }
+  .product-btn .p-icon { font-size: 22px; margin-bottom: 10px; display: block; color: var(--text-secondary); }
+  .product-btn .p-name { font-size: 14px; font-weight: 600; color: var(--text-primary); display: block; margin-bottom: 2px; }
+  .product-btn .p-desc { font-size: 11px; color: var(--text-tertiary); display: block; }
+  .spinner {
+    position: absolute; top: 12px; right: 12px;
+    width: 14px; height: 14px;
+    border: 1.5px solid var(--border-md);
+    border-top-color: var(--text-secondary);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    display: none;
+  }
+  .product-btn.loading .spinner { display: block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .card {
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    margin-bottom: 10px;
+  }
+
+  .hook-card {
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .hook-card:hover { background: var(--bg-secondary); }
+  .hook-card.selected { border-color: var(--accent-atlas); background: var(--accent-atlas-bg); }
+  .hook-card.selected.clarity { border-color: var(--accent-clarity); background: var(--accent-clarity-bg); }
+  .hook-card.selected.roundtable { border-color: var(--accent-roundtable); background: var(--accent-roundtable-bg); }
+
+  .hook-headline { font-size: 14px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+  .hook-angle { font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
+  .hook-summary { font-size: 12px; color: var(--text-tertiary); line-height: 1.55; margin-bottom: 6px; }
+  .source-pill {
+    display: inline-block; font-size: 10px; font-weight: 500;
+    color: var(--text-tertiary); border: 0.5px solid var(--border);
+    border-radius: 20px; padding: 2px 8px;
+  }
+
+  .section-block { margin-bottom: 28px; display: none; }
+  .section-block.visible { display: block; }
+
+  .gen-btn {
+    width: 100%; padding: 12px;
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-md);
+    background: var(--bg);
+    font-size: 13px; font-weight: 600;
+    color: var(--text-primary);
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.15s;
+    box-shadow: var(--shadow);
+  }
+  .gen-btn:hover { background: var(--bg-secondary); border-color: var(--border-strong); }
+  .gen-btn:disabled { opacity: 0.45; pointer-events: none; }
+
+  .subject-grid { display: grid; gap: 6px; margin-bottom: 16px; }
+  .subject-pill {
+    padding: 10px 14px;
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    background: var(--bg);
+    transition: all 0.15s;
+    text-align: left;
+    box-shadow: var(--shadow);
+  }
+  .subject-pill:hover { border-color: var(--border-strong); color: var(--text-primary); background: var(--bg-secondary); }
+  .subject-pill.selected-atlas { border-color: var(--accent-atlas); background: var(--accent-atlas-bg); color: var(--accent-atlas-text); font-weight: 600; }
+  .subject-pill.selected-clarity { border-color: var(--accent-clarity); background: var(--accent-clarity-bg); color: var(--accent-clarity-text); font-weight: 600; }
+  .subject-pill.selected-roundtable { border-color: var(--accent-roundtable); background: var(--accent-roundtable-bg); color: var(--accent-roundtable-text); font-weight: 600; }
+
+  .email-wrap {
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    margin-bottom: 12px;
+  }
+  .email-toolbar {
+    padding: 10px 14px;
+    border-bottom: 0.5px solid var(--border);
+    background: var(--bg-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .toolbar-subject { font-size: 12px; color: var(--text-tertiary); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .toolbar-subject.has-subject { color: var(--text-primary); font-weight: 500; }
+  .toolbar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .toolbar-btn {
+    font-size: 12px; padding: 5px 10px;
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-sm);
+    background: var(--bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex; align-items: center; gap: 4px;
+    transition: all 0.15s;
+  }
+  .toolbar-btn:hover { background: var(--bg-tertiary); color: var(--text-primary); }
+  .copy-confirm { font-size: 11px; color: var(--accent-clarity); font-weight: 500; }
+
+  #email-editor {
+    width: 100%; min-height: 380px;
+    padding: 16px;
+    font-size: 14px; line-height: 1.8;
+    color: var(--text-primary);
+    background: transparent;
+    border: none; outline: none;
+    resize: vertical;
+    font-family: inherit;
+  }
+
+  .product-tag {
+    display: inline-block; font-size: 11px; font-weight: 600;
+    padding: 3px 10px; border-radius: 20px; margin-bottom: 10px;
+  }
+  .tag-atlas { background: var(--accent-atlas-bg); color: var(--accent-atlas-text); }
+  .tag-clarity { background: var(--accent-clarity-bg); color: var(--accent-clarity-text); }
+  .tag-roundtable { background: var(--accent-roundtable-bg); color: var(--accent-roundtable-text); }
+
+  .divider { border: none; border-top: 0.5px solid var(--border); margin: 24px 0; }
+
+  .reset-link {
+    font-size: 12px; color: var(--text-tertiary);
+    text-decoration: underline; cursor: pointer;
+  }
+  .reset-link:hover { color: var(--text-secondary); }
+
+  .error-box {
+    font-size: 13px; color: #A32D2D;
+    padding: 10px 14px;
+    border: 0.5px solid #F09595;
+    border-radius: var(--radius-md);
+    background: #FCEBEB;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .status-msg { font-size: 12px; color: var(--text-tertiary); margin-bottom: 12px; display: none; }
+
+  .api-setup {
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 28px;
+    box-shadow: var(--shadow);
+  }
+  .api-setup label { font-size: 12px; font-weight: 600; color: var(--text-secondary); display: block; margin-bottom: 6px; }
+  .api-input {
+    width: 100%; padding: 10px 12px;
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    background: var(--bg-secondary);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s;
+    font-family: monospace;
+  }
+  .api-input:focus { border-color: var(--border-strong); }
+  .api-hint { font-size: 11px; color: var(--text-tertiary); margin-top: 5px; }
+  .api-save-btn {
+    margin-top: 10px; padding: 8px 16px;
+    border: 0.5px solid var(--border-md);
+    border-radius: var(--radius-md);
+    background: var(--bg-secondary);
+    font-size: 12px; font-weight: 600;
+    color: var(--text-primary); cursor: pointer;
+    transition: all 0.15s;
+  }
+  .api-save-btn:hover { background: var(--bg-tertiary); }
+  .api-saved { font-size: 11px; color: var(--accent-clarity); margin-left: 8px; display: none; }
+
+  @media (max-width: 500px) {
+    .product-grid { grid-template-columns: 1fr; }
+    .main { padding: 20px 14px 60px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="topbar-logo">Keystone</span>
+  <span class="topbar-sep">/</span>
+  <span class="topbar-sub">Email Engine</span>
+</div>
+
+<div class="main">
+
+  <div class="api-setup" id="api-setup">
+    <label>Anthropic API Key</label>
+    <input type="password" class="api-input" id="api-key-input" placeholder="sk-ant-..." autocomplete="off">
+    <div class="api-hint">Stored in your browser only. Never sent anywhere except Anthropic's API.</div>
+    <button class="api-save-btn" onclick="saveKey()">Save key</button>
+    <span class="api-saved" id="api-saved">saved</span>
+  </div>
+
+  <div class="section-label">pick a product</div>
+
+  <div class="product-grid">
+    <button class="product-btn" onclick="fetchHooks('atlas')" id="btn-atlas">
+      <div class="spinner"></div>
+      <i class="ti ti-robot p-icon" aria-hidden="true"></i>
+      <span class="p-name">Atlas</span>
+      <span class="p-desc">AI market emails</span>
+    </button>
+    <button class="product-btn" onclick="fetchHooks('clarity')" id="btn-clarity">
+      <div class="spinner"></div>
+      <i class="ti ti-currency-bitcoin p-icon" aria-hidden="true"></i>
+      <span class="p-name">Clarity Kit</span>
+      <span class="p-desc">Crypto / Clarity Act</span>
+    </button>
+    <button class="product-btn" onclick="fetchHooks('roundtable')" id="btn-roundtable">
+      <div class="spinner"></div>
+      <i class="ti ti-users p-icon" aria-hidden="true"></i>
+      <span class="p-name">Roundtable</span>
+      <span class="p-desc">Mentorship emails</span>
+    </button>
+  </div>
+
+  <div class="error-box" id="error-box"></div>
+  <div class="status-msg" id="status-msg"></div>
+
+  <div class="section-block" id="hooks-section">
+    <div class="section-label" id="hooks-label">choose a hook</div>
+    <div id="hooks-list"></div>
+    <button class="gen-btn" id="gen-btn" onclick="generateEmail()" style="display:none">
+      write the email with this hook &rarr;
+    </button>
+  </div>
+
+  <div class="section-block" id="email-section">
+    <hr class="divider">
+    <div id="product-tag"></div>
+    <div class="section-label">pick a subject line</div>
+    <div class="subject-grid" id="subject-grid"></div>
+    <hr class="divider">
+    <div class="section-label">email draft</div>
+    <div class="email-wrap">
+      <div class="email-toolbar">
+        <span class="toolbar-subject" id="subject-display">select a subject line above</span>
+        <div class="toolbar-actions">
+          <button class="toolbar-btn" onclick="copyEmail()">
+            <i class="ti ti-copy" aria-hidden="true"></i> copy all
+          </button>
+          <span class="copy-confirm" id="copy-confirm" style="display:none">copied!</span>
+        </div>
+      </div>
+      <textarea id="email-editor" spellcheck="true"></textarea>
+    </div>
+    <span class="reset-link" onclick="resetApp()">start over</span>
+  </div>
+
+</div>
+
+<script>
+const PRODUCTS = {
+  atlas: {
+    name: 'Atlas',
+    tagClass: 'tag-atlas',
+    selectedClass: 'selected-atlas',
+    hookSelectedClass: 'selected',
+    searchQuery: 'AI stocks market investing news 2026',
+    systemPrompt: `You are an email copywriter for Iman, founder of Keystone Investors. Write in Iman's voice: authoritative like a straight-talking mentor, empathetic, direct, truth-telling, brief. Never preachy.
+
+The reader is John, 55, Dallas, financial analyst nearing retirement. Conservative but hungry. Scared of missing the AI wave like he missed Bitcoin. Embarrassed he doesn't fully understand AI investing. Reads WSJ and Forbes. Idolizes Buffett and Musk.
+
+HARD RULES — break none of these:
+- No em dashes ever. Use a comma or two sentences instead.
+- Never use: delve, leverage (as verb), robust, nuanced, transformative, comprehensive, ecosystem, landscape, synergy, empower, holistic, cutting-edge, stakeholders, utilize, facilitate
+- Always use contractions: don't, can't, won't, it's, that's
+- Mix short sentences with longer ones. Paragraphs can be one sentence. That's fine.
+- Never open with "In today's..." or "Now more than ever..." or any sycophantic opener
+- Never summarize what you just said
+- Grade 6-8 reading level. Plain words always beat fancy ones.
+- Body is 150-250 words. Tight. Every sentence earns its place.
+- The PS is the only place a product is mentioned. Body is pure value/story.`,
+    cta: `P.S. The AI market is on track to double by the end of this year.
+
+You don't need a PhD from MIT or a direct line to Silicon Valley to join the new legion of AI millionaires. We've developed a simple, "brain-dead" strategy to find hidden stocks before they explode.
+
+We're hosting a free online class and it might be the most important hour of your financial life.
+
+RSVP for free here: [LINK]`
+  },
+  clarity: {
+    name: 'Clarity Kit',
+    tagClass: 'tag-clarity',
+    selectedClass: 'selected-clarity',
+    hookSelectedClass: 'selected clarity',
+    searchQuery: 'crypto market Bitcoin Clarity Act institutional investing news 2026',
+    systemPrompt: `You are an email copywriter for Iman, founder of Keystone Investors. Write in Iman's voice: authoritative like a straight-talking mentor, empathetic, direct, truth-telling, brief. Never preachy.
+
+The reader is John, 55, Dallas, financial analyst nearing retirement. Conservative but hungry. Missed Bitcoin early and it still stings. Now watching crypto go institutional and wondering if this is his second chance. Reads WSJ and Forbes.
+
+HARD RULES — break none of these:
+- No em dashes ever. Use a comma or two sentences instead.
+- Never use: delve, leverage (as verb), robust, nuanced, transformative, comprehensive, ecosystem, landscape, synergy, empower, holistic, cutting-edge, stakeholders, utilize, facilitate
+- Always use contractions: don't, can't, won't, it's, that's
+- Mix short sentences with longer ones. Paragraphs can be one sentence. That's fine.
+- Never open with "In today's..." or "Now more than ever..." or any sycophantic opener
+- Never summarize what you just said
+- Grade 6-8 reading level. Plain words always beat fancy ones.
+- Body is 150-250 words. Tight. Every sentence earns its place.
+- The PS is the only place a product is mentioned. Body is pure value/story.`,
+    cta: `P.S. If you want to take advantage of everything happening in the crypto market and make money right now, in advance of the signing this summer, even when the markets are down (because we make money either way), then go here: [LINK]
+
+I'll send you information on our money making Clarity Investors Kit.`
+  },
+  roundtable: {
+    name: 'Roundtable',
+    tagClass: 'tag-roundtable',
+    selectedClass: 'selected-roundtable',
+    hookSelectedClass: 'selected roundtable',
+    searchQuery: 'financial markets wealth investing retirement money news 2026',
+    systemPrompt: `You are an email copywriter for Iman, founder of Keystone Investors. Write in Iman's voice: authoritative like a straight-talking mentor, empathetic, direct, truth-telling, brief. Never preachy.
+
+The reader is John, 55, Dallas, financial analyst nearing retirement. Married to Susan. Scared of outliving his money. Scared of becoming a burden to his family. Hardworking, proud, doesn't like to admit he needs help. Reads WSJ and Forbes. Idolizes Buffett.
+
+HARD RULES — break none of these:
+- No em dashes ever. Use a comma or two sentences instead.
+- Never use: delve, leverage (as verb), robust, nuanced, transformative, comprehensive, ecosystem, landscape, synergy, empower, holistic, cutting-edge, stakeholders, utilize, facilitate
+- Always use contractions: don't, can't, won't, it's, that's
+- Mix short sentences with longer ones. Paragraphs can be one sentence. That's fine.
+- Never open with "In today's..." or "Now more than ever..." or any sycophantic opener
+- Never summarize what you just said
+- Grade 6-8 reading level. Plain words always beat fancy ones.
+- Body is 150-250 words. Tight. Every sentence earns its place.
+- The PS is the only place a product is mentioned. Body is pure value/story.`,
+    cta: `P.S. If this email got your attention and you want to know how to actually act on it... if you want to take advantage of the big money being made right now in this so-called "down market", then you'll want some information on our mentorship which you can find here: [LINK]
+
+Our mentorship has helped ordinary people turn $2,500 into $280,000. $1,000 into $11,750. Portfolios up 700%. You don't need experience. You don't need to be a tech person. You need maybe 30 minutes a week and a little money set aside to invest.`
+  }
+};
+
+let state = { product: null, hooks: [], selectedHook: null, selectedSubject: null };
+
+function getKey() { return localStorage.getItem('kei_api_key') || ''; }
+
+function saveKey() {
+  const val = document.getElementById('api-key-input').value.trim();
+  if (!val) return;
+  localStorage.setItem('kei_api_key', val);
+  const saved = document.getElementById('api-saved');
+  saved.style.display = 'inline';
+  setTimeout(() => { saved.style.display = 'none'; }, 2000);
+}
+
+function setStatus(msg) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-box');
+  el.textContent = msg;
+  el.style.display = msg ? 'block' : 'none';
+}
+
+async function callAPI(body) {
+  const key = getKey();
+  if (!key) throw new Error('No API key saved. Enter your Anthropic API key at the top.');
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-calls': 'true'
+    },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error?.message || 'API error ' + res.status);
+  }
+  return res.json();
+}
+
+async function fetchHooks(productKey) {
+  const key = getKey();
+  if (!key) { showError('Enter and save your Anthropic API key first.'); return; }
+
+  state.product = productKey;
+  state.hooks = [];
+  state.selectedHook = null;
+  state.selectedSubject = null;
+
+  const prod = PRODUCTS[productKey];
+  ['atlas','clarity','roundtable'].forEach(k => document.getElementById('btn-'+k).classList.remove('loading'));
+  document.getElementById('btn-'+productKey).classList.add('loading');
+  document.getElementById('hooks-section').classList.remove('visible');
+  document.getElementById('email-section').classList.remove('visible');
+  document.getElementById('gen-btn').style.display = 'none';
+  showError('');
+  setStatus('searching for the best ' + prod.name + ' news right now...');
+
+  try {
+    const data = await callAPI({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      system: `You are a news researcher for Keystone Investors. Find 3 real, current news stories for compelling email hooks for the "${prod.name}" product. Reader is a 55-year-old conservative male investor scared of being left behind financially.
+
+Return ONLY valid JSON. No markdown, no backticks, no explanation. Format exactly:
+{"hooks":[{"headline":"punchy hook angle max 10 words","angle":"one sentence why this is urgent for our reader","source":"publication name","news_summary":"2-3 plain English sentences summarizing the actual news story"}]}`,
+      messages: [{ role: 'user', content: `Search for compelling recent news: "${prod.searchQuery}". Find 3 stories a 55-year-old conservative investor would feel urgency about. Return only the JSON.` }]
+    });
+
+    const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const clean = text.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+    state.hooks = parsed.hooks || [];
+    if (!state.hooks.length) throw new Error('No hooks returned. Try again.');
+    renderHooks();
+    setStatus('');
+    document.getElementById('btn-'+productKey).classList.remove('loading');
+  } catch(e) {
+    setStatus('');
+    document.getElementById('btn-'+productKey).classList.remove('loading');
+    showError(e.message || 'Something went wrong. Try again.');
+  }
+}
+
+function renderHooks() {
+  const prod = PRODUCTS[state.product];
+  document.getElementById('hooks-label').textContent = 'choose a hook for ' + prod.name;
+  document.getElementById('hooks-list').innerHTML = state.hooks.map((h, i) => `
+    <div class="card hook-card" onclick="selectHook(${i})" id="hook-${i}">
+      <div class="hook-headline">${h.headline}</div>
+      <div class="hook-angle">${h.angle}</div>
+      <div class="hook-summary">${h.news_summary}</div>
+      <span class="source-pill">${h.source}</span>
+    </div>
+  `).join('');
+  document.getElementById('hooks-section').classList.add('visible');
+}
+
+function selectHook(i) {
+  state.selectedHook = i;
+  const prod = PRODUCTS[state.product];
+  document.querySelectorAll('.hook-card').forEach((el, idx) => {
+    el.className = 'card hook-card' + (idx === i ? ' ' + prod.hookSelectedClass : '');
+  });
+  document.getElementById('gen-btn').style.display = 'block';
+}
+
+async function generateEmail() {
+  if (state.selectedHook === null) return;
+  const hook = state.hooks[state.selectedHook];
+  const prod = PRODUCTS[state.product];
+  const btn = document.getElementById('gen-btn');
+  btn.disabled = true;
+  btn.textContent = 'writing...';
+  showError('');
+  setStatus('writing in Iman\'s voice...');
+
+  try {
+    const data = await callAPI({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1200,
+      system: prod.systemPrompt,
+      messages: [{
+        role: 'user',
+        content: `Write a content email using this hook:
+
+HOOK: ${hook.headline}
+NEWS: ${hook.news_summary}
+SOURCE: ${hook.source}
+
+Instructions:
+1. Write the email body only. 150-250 words. No greeting, no subject line. Just body paragraphs starting immediately.
+2. After the body, add exactly this PS on a new line:
+
+${prod.cta}
+
+3. After the full email, write "SUBJECTS:" on its own line, then list 5 subject line options numbered 1-5. Each under 8 words. Mix curiosity, urgency, and plain-speak styles. No question marks on all of them.
+
+Output only the email and subjects. Nothing else.`
+      }]
+    });
+
+    const text = data.content.filter(b => b.type === 'text').map(b => b.text).join('');
+    const parts = text.split(/SUBJECTS:/i);
+    const body = parts[0].trim();
+    const subjects = (parts[1] || '').trim().split('\n')
+      .map(s => s.replace(/^\d+[\.\)]\s*/, '').trim())
+      .filter(s => s.length > 2)
+      .slice(0, 5);
+
+    renderEmail(body, subjects);
+    setStatus('');
+    btn.disabled = false;
+    btn.textContent = 'write the email with this hook \u2192';
+  } catch(e) {
+    setStatus('');
+    btn.disabled = false;
+    btn.textContent = 'write the email with this hook \u2192';
+    showError(e.message || 'Something went wrong. Try again.');
+  }
+}
+
+function renderEmail(body, subjects) {
+  const prod = PRODUCTS[state.product];
+  document.getElementById('product-tag').innerHTML = `<span class="product-tag ${prod.tagClass}">${prod.name}</span>`;
+  document.getElementById('subject-grid').innerHTML = subjects.map((s, i) => `
+    <button class="subject-pill" onclick="selectSubject(this, '${s.replace(/'/g,"\\'")}', '${prod.selectedClass}')">${s}</button>
+  `).join('');
+  document.getElementById('email-editor').value = body;
+  document.getElementById('subject-display').textContent = 'select a subject line above';
+  document.getElementById('subject-display').classList.remove('has-subject');
+  document.getElementById('copy-confirm').style.display = 'none';
+  document.getElementById('email-section').classList.add('visible');
+  document.getElementById('email-section').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function selectSubject(el, text, selectedClass) {
+  document.querySelectorAll('.subject-pill').forEach(p => {
+    p.className = 'subject-pill';
+  });
+  el.classList.add(selectedClass);
+  state.selectedSubject = text;
+  const display = document.getElementById('subject-display');
+  display.textContent = text;
+  display.classList.add('has-subject');
+}
+
+function copyEmail() {
+  const subject = state.selectedSubject ? 'Subject: ' + state.selectedSubject + '\n\n' : '';
+  const body = document.getElementById('email-editor').value;
+  navigator.clipboard.writeText(subject + body).then(() => {
+    const c = document.getElementById('copy-confirm');
+    c.style.display = 'inline';
+    setTimeout(() => { c.style.display = 'none'; }, 2000);
+  });
+}
+
+function resetApp() {
+  state = { product: null, hooks: [], selectedHook: null, selectedSubject: null };
+  document.getElementById('hooks-section').classList.remove('visible');
+  document.getElementById('email-section').classList.remove('visible');
+  document.getElementById('gen-btn').style.display = 'none';
+  showError('');
+  setStatus('');
+  ['atlas','clarity','roundtable'].forEach(k => document.getElementById('btn-'+k).classList.remove('loading'));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = getKey();
+  if (saved) {
+    document.getElementById('api-key-input').value = saved.slice(0,8) + '...';
+  }
+});
+</script>
+</body>
+</html>

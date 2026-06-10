@@ -522,7 +522,7 @@ async function fetchHooks(productKey) {
 
   try {
     const data = await callAPI({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 1000,
       tools: [{ type: 'web_search_20250305', name: 'web_search' }],
       system: `You are a news researcher for Keystone Investors. Find 3 real, current news stories for compelling email hooks for the "${prod.name}" product. Reader is a 55-year-old conservative male investor scared of being left behind financially.
@@ -582,7 +582,7 @@ async function generateEmail() {
 
   try {
     const data = await callAPI({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-sonnet-4-5',
       max_tokens: 1200,
       system: prod.systemPrompt,
       messages: [{
